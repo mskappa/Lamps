@@ -89,7 +89,8 @@ sudo service apache2 reload
 
 ## Installing PHP
 echo "Installing PHP"
-sudo apt-get install -y php
+sudo apt-get install -y php libapache2-mod-php
+sudo a2enmod php7.0
 
 # Adding index.php to test and show infos
 sudo touch $SERVICE_PUBLIC_DIR/index.php
