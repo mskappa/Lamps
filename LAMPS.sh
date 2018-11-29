@@ -118,7 +118,7 @@ sudo a2enmod php7.0
 echo ""
 
 ## Generate an info.php file
-read -p "+ Create a info.php file? "
+read -p "+ Create a info.php file? [y/n] "
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
 sudo touch $SERVICE_PUBLIC_DIR/info.php
@@ -127,6 +127,7 @@ echo '<?php phpinfo(); phpinfo(INFO_MODULES); ?>' | sudo tee --append $SERVICE_P
 echo "info.php file generated in "$SERVICE_PUBLIC_DIR
 fi
 
+## Database installation
 echo ""
 read -p "+ Use [mysql] or [mariadb]? [enter] for none " db_type
 case "$db_type" in
@@ -144,4 +145,35 @@ echo "Installing mySQL"
 esac
 
 echo ""
+## SSL/HTTPS with LetsEncrypt
+read -p "+ Install LetsEncrypt and configure SSL/HTTPS? [y/n] "
+if [[ $REPLY =~ ^[Yy]$ ]]
+then
+echo "Adding LetsEncrypt reposityry"
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt-get update
+echo "Installing LetsEncrypt"
+sudo apt-get install python-certbot-apache
+echo "Issue a certificate for "$WEBSITE_URL
+sudo certbot --apache -d $WEBSITE_URL
+echo ""
+echo "Issue a certificate for "$WEBSITE_URL
+echo ""
+echo "Configuring virtual host for ssl/https"
+echo '' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo '<VirtualHost *:443>' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'ServerAdmin '$ADMIN_EMAIL | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'ServerName '$WEBSITE_URL | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'ServerAlias 'www.$WEBSITE_URL | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'DirectoryIndex index.html index.php' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'DocumentRoot '$SERVICE_PUBLIC_DIR | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'SSLEngine on' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'SSLCertificateFile /etc/letsencrypt/live/'$WEBSITE_URL'/fullchain.pem' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'SSLCertificateKeyFile /etc/letsencrypt/live/'$WEBSITE_URL'/privkey.pem' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'ErrorLog '$ERROR_LOG_FILE | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo 'CustomLog '$CUSTOM_LOG_FILE' combined' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+echo '</VirtualHost>' | sudo tee --append $VIRTUAL_HOST_CONFIG_FILENAME > /dev/null
+sudo service apache2 reload
+fi
 
+echo ""
